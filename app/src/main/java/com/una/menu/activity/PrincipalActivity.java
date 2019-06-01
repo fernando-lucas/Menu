@@ -1,6 +1,8 @@
 package com.una.menu.activity;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.FragmentTransaction;
@@ -13,16 +15,26 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.google.android.gms.auth.api.Auth;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.auth.api.signin.GoogleSignInResult;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.OptionalPendingResult;
+import com.google.android.gms.common.api.ResultCallback;
 import com.una.menu.R;
 import com.una.menu.fragment.BuscaFragment;
 import com.una.menu.fragment.LanchonetesFragment;
 import com.una.menu.fragment.ProdutosFragment;
 import com.una.menu.fragment.ProdutosViewFragment;
+import android.view.View;
 
 public class PrincipalActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
+        implements NavigationView.OnNavigationItemSelectedListener, GoogleApiClient.OnConnectionFailedListener {
 
     // Variaveis
     private FrameLayout frameContainer;
@@ -30,13 +42,35 @@ public class PrincipalActivity extends AppCompatActivity
     private TextView textEmailUsuario;
 
 
+    // 2019 - Login Google ------------------------------------------------------------------------------------------------
+    private GoogleApiClient googleApiClient;
+    private ImageView imageViewFotoUsuario;
+    private TextView textViewNomeUsuario;
+    private  TextView textViewEmailUsuario;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_principal);
 
+        // 2019 - Login Google ------------------------------------------------------------------------------------------------
+        imageViewFotoUsuario = findViewById(R.id.imageViewFotoUsuario);
+        textNomeUsuario = findViewById(R.id.textViewNomeUsuario);
+        textViewEmailUsuario = findViewById(R.id.textViewEmailUsuario);
 
-        // Meus Códigos Inicio ----------------------------------------------------------------------------------------------------------------
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                //.requestIdToken(getString(R.string.default_web_client_id))
+                .requestEmail()
+                .build();
+
+        googleApiClient = new GoogleApiClient.Builder(this)
+                .enableAutoManage(this, this)
+                .addApi(Auth.GOOGLE_SIGN_IN_API, gso)
+                .build();
+
+
+        // CÓDIGO ANTIGO (Primeira Versão do Projeto)----------------------------------------------------------------------------------------------------------------
 
         // Seta título para Activity
         this.setTitle("Menu");
@@ -56,10 +90,6 @@ public class PrincipalActivity extends AppCompatActivity
         // Recebe id e nome do Usuario
         int idUsuario = getIntent().getExtras().getInt("id_usuario");
         String nomeUsuario = getIntent().getExtras().getString("nome_usuario");
-
-
-
-        // Meus Códigos FIM ----------------------------------------------------------------------------------------------------------------
 
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -164,6 +194,11 @@ public class PrincipalActivity extends AppCompatActivity
             FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
             fragmentTransaction.replace(R.id.frameContainer, buscaFragment);
             fragmentTransaction.commit();
+        } else if (id == R.id.nav_logOut) {
+            logOut();
+
+        } else if(id == R.id.nav_revoke) {
+            revoke();
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -171,4 +206,53 @@ public class PrincipalActivity extends AppCompatActivity
         return true;
     }
 
+    // 2019 - Login Google ------------------------------------------------------------------------------------------------
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+
+    }
+
+    private void logOut() {
+
+    }
+
+    private void revoke() {
+
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        OptionalPendingResult<GoogleSignInResult> opr = Auth.GoogleSignInApi.silentSignIn(googleApiClient);
+
+        if(opr.isDone()) {
+            GoogleSignInResult result = opr.get();
+            handleSignInResult(result);
+        } else {
+            opr.setResultCallback(new ResultCallback<GoogleSignInResult>() {
+                @Override
+                public void onResult(@NonNull GoogleSignInResult googleSignInResult) {
+                    handleSignInResult(googleSignInResult);
+                }
+            });
+        }
+    }
+
+    private void handleSignInResult(GoogleSignInResult result) {
+        if(result.isSuccess()) {
+            GoogleSignInAccount account = result.getSignInAccount();
+
+            textViewEmailUsuario.setText(account.getDisplayName());
+            textViewEmailUsuario.setText(account.getEmail());
+        } else {
+            //goLogInScreem();
+        }
+    }
+
+    private void goLogInScreem() {
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
+    }
 }
